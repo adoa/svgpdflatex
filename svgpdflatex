@@ -1,0 +1,62 @@
+#!/bin/bash
+
+## This script compiles pdf images from svg images and renders the text 
+## inside the svg image with pdflatex, optionally add additional header files as further arguments.
+## Just use plain LaTeX syntax right within Inkscape while drawing the images.
+## This script relies on Inkscape version 0.47 or higher to be installed.
+
+# usage:
+# $ ./svgpdflatex path/to/drawing.svg header1.tex header2.tex
+#
+# output:
+# $ path/to/drawing.pdf
+
+
+#  Extract filename from argument
+filename=$(basename "$1")
+directory=${1%$filename}
+filenamebase="${filename%.*}"
+#echo "$directory"
+
+pwd=$(pwd)
+
+tmpdir="/tmp/latex/${directory}"
+mkdir -p ${tmpdir}
+filename="${tmpdir}""${filename%.*}"
+
+
+
+#  Use Inkscape to separate image from text
+inkscape -z -C --file=$1 --export-pdf="$filename"-tmp-src.pdf --export-latex
+
+#  Create temporary TeX source to recombine image and text
+#    & use a texheader files if given as further command line arguments
+echo '\documentclass[10pt]{article}'			> "$filename"-tmp.tex
+echo '\usepackage{amsmath,amsfonts}'			>>"$filename"-tmp.tex
+echo '\usepackage{amssymb,amstext}'			>>"$filename"-tmp.tex
+for file in $@; do
+    if [ ${file} != $1 ]; then
+	cp "${file}" ${tmpdir}
+	echo '\input{'"${file%.*}"'}'			>>"$filename"-tmp.tex
+    fi
+done
+echo '\usepackage{graphicx}'				>>"$filename"-tmp.tex
+echo '\usepackage{color}'				>>"$filename"-tmp.tex
+echo '\pagestyle{empty}'				>>"$filename"-tmp.tex
+echo '\begin{document}'					>>"$filename"-tmp.tex
+echo '\input{'"$filenamebase"'-tmp-src.pdf_tex}'	>>"$filename"-tmp.tex
+echo '\end{document}'					>>"$filename"-tmp.tex
+
+#  Compile and crop final pdf image
+cd ${tmpdir}
+pdflatex "$filenamebase"-tmp.tex
+cd ${pwd}
+pdfcrop "$filename"-tmp.pdf "$directory""$filenamebase".pdf
+
+#  Remove temporary files
+#rm ${tmpdir}/*-tmp.tex \
+    #${tmpdir}/*-tmp.pdf \
+    #${tmpdir}/*-tmp-src.pdf \
+    #${tmpdir}/*-tmp-src.pdf_tex \
+    #${tmpdir}/*-tmp.aux \
+    #${tmpdir}/*-tmp.log
