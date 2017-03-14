@@ -25,13 +25,12 @@ mkdir -p ${tmpdir}
 filename="${tmpdir}""${filename%.*}"
 
 
-
 #  Use Inkscape to separate image from text
 inkscape -z -C --file=$1 --export-pdf="$filename"-tmp-src.pdf --export-latex
 
 #  Create temporary TeX source to recombine image and text
 #    & use a texheader files if given as further command line arguments
-echo '\documentclass[10pt]{article}'			> "$filename"-tmp.tex
+echo '\documentclass[10pt,page=a0]{scrartcl}'		> "$filename"-tmp.tex
 echo '\usepackage{amsmath,amsfonts}'			>>"$filename"-tmp.tex
 echo '\usepackage{amssymb,amstext}'			>>"$filename"-tmp.tex
 for file in $@; do
@@ -54,9 +53,4 @@ cd ${pwd}
 pdfcrop "$filename"-tmp.pdf "$directory""$filenamebase".pdf
 
 #  Remove temporary files
-#rm ${tmpdir}/*-tmp.tex \
-    #${tmpdir}/*-tmp.pdf \
-    #${tmpdir}/*-tmp-src.pdf \
-    #${tmpdir}/*-tmp-src.pdf_tex \
-    #${tmpdir}/*-tmp.aux \
-    #${tmpdir}/*-tmp.log
+rm ${tmpdir}/*-tmp*
